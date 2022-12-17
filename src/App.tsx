@@ -1,9 +1,9 @@
 import "./App.css";
-import About from "./components/pages/About";
-import Home from "./components/pages/Home";
+import About from "./pages/About";
+import Home from "./pages/Home";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-
+import { Toaster } from "react-hot-toast";
 const darkTheme = createTheme({
   palette: {
     mode: "dark",
@@ -26,6 +26,7 @@ const App = () => {
           <Route path="/about" element={<About />} />
         </Routes>
       </BrowserRouter>
+      <Toaster></Toaster>
     </ThemeProvider>
   );
 };

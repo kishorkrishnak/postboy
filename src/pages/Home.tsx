@@ -1,7 +1,9 @@
-import Navbar from "../Navbar";
+import Navbar from "../components/Navbar";
 import axios from "axios";
-import { useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ContentCopy, Add } from "@mui/icons-material";
+import { toast } from "react-hot-toast";
+
 import {
   TextField,
   Box,
@@ -17,20 +19,56 @@ import {
 } from "@mui/material";
 
 const Home = () => {
-  interface Parameter {
+  type Parameter = {
     key: string;
     value: string;
-  }
+  };
   const [response, setResponse] = useState<string>("");
+
   const [url, setUrl] = useState<string>("");
   const [method, setMethod] = useState<string>("get");
-  const [params, setParams] = useState<Parameter | {}>({});
-  const generateParamStringAndAppend = (
-    url: string,
-    params: Parameter
-  ): string => {
-    return "test";
-  };
+  const keyRef = useRef<HTMLInputElement>(null);
+  const valueRef = useRef<HTMLInputElement>(null);
+
+  function addUrlParameters(url: string, param: Parameter) {
+    let newUrl = url;
+
+    if (newUrl[newUrl.length - 1] === "/") {
+      newUrl += "/";
+    }
+
+    if (newUrl.indexOf("?") === -1) {
+      newUrl += `?${encodeURIComponent(param.key)}=${encodeURIComponent(
+        param.value
+      )}`;
+    } else {
+      const keyRegex = new RegExp(`${encodeURIComponent(param.key)}=\\S+&?`);
+      const match = keyRegex.exec(newUrl);
+      if (match) {
+        newUrl = newUrl.replace(
+          keyRegex,
+          `${encodeURIComponent(param.key)}=${encodeURIComponent(param.value)}&`
+        );
+      } else {
+        const lastParamRegex = /&[^&]+$/;
+        const lastMatch = lastParamRegex.exec(newUrl);
+        if (lastMatch) {
+          newUrl = newUrl.replace(
+            lastParamRegex,
+            `&${encodeURIComponent(param.key)}=${encodeURIComponent(
+              param.value
+            )}`
+          );
+        } else {
+          newUrl += `&${encodeURIComponent(param.key)}=${encodeURIComponent(
+            param.value
+          )}`;
+        }
+      }
+    }
+
+    setUrl(newUrl);
+  }
 
   const isURL = (url: string) => {
     const pattern: RegExp =
@@ -42,7 +80,6 @@ const Home = () => {
   return (
     <>
       <Navbar></Navbar>
-
       <Box
         sx={{
           px: { xs: 2, md: 10 },
@@ -74,8 +111,11 @@ const Home = () => {
           sx={{
             mt: 4,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "flex-start",
+            gap: { xs: 1, md: 24 },
+
+            alignItems: { xs: "flex-start", md: "center" },
           }}
         >
           <Typography variant="subtitle1">Enter URL:</Typography>
@@ -83,23 +123,23 @@ const Home = () => {
             onChange={(e) => {
               setUrl(e.target.value);
             }}
-            sx={{
-              width: 1065,
-            }}
             size="small"
             id="request-url"
             fullWidth
             label="Enter URL Here"
             variant="outlined"
+            value={url}
           />
         </Box>
         <Box
           sx={{
             mt: 2,
             display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+
             justifyContent: "flex-start",
             alignItems: "flex-start",
-            gap: 19,
+            gap: { md: 19 },
           }}
         >
           <Typography mt={0.5} variant="subtitle1">
@@ -109,7 +149,6 @@ const Home = () => {
             <RadioGroup
               onChange={(e) => {
                 setMethod(e.target.value);
-                console.log(e);
               }}
               aria-labelledby="demo-radio-buttons-group-label"
               defaultValue="get"
@@ -126,42 +165,61 @@ const Home = () => {
             sx={{
               mt: 4,
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              justifyContent: "flex-start",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "flex-start", md: "center" },
+              gap: { xs: 1, md: 13 },
             }}
           >
             <Typography variant="subtitle1">Enter Query Params:</Typography>
-            <TextField
-              onChange={(e) => {
-                setUrl(e.target.value);
-              }}
+
+            <Box
               sx={{
-                width: "40%",
+                display: "flex",
+                gap: 1,
               }}
-              size="small"
-              id="request-url"
-              fullWidth
-              label="Param"
-              variant="outlined"
-            />
-            <TextField
-              onChange={(e) => {
-                setUrl(e.target.value);
-              }}
-              sx={{
-                width: "40%",
-              }}
-              size="small"
-              id="request-url"
-              fullWidth
-              label="Value"
-              variant="outlined"
-            />
-            <Tooltip title="Copy">
-              <IconButton edge="end">
-                <Add></Add>
-              </IconButton>
-            </Tooltip>
+            >
+              <TextField
+                inputRef={keyRef}
+                size="small"
+                id="request-url"
+                fullWidth
+                label="Key"
+                variant="outlined"
+              />
+              <TextField
+                inputRef={valueRef}
+                size="small"
+                id="request-url"
+                fullWidth
+                label="Value"
+                variant="outlined"
+              />
+              <Tooltip title="Add">
+                <IconButton
+                  edge="end"
+                  onClick={() => {
+                    if (!keyRef.current || !valueRef.current) {
+                      toast.error("Both key and value required");
+                      return;
+                    }
+
+                    const key: string = keyRef.current.value;
+                    const value: string = valueRef.current.value;
+
+                    addUrlParameters(url, {
+                      key,
+                      value,
+                    });
+                    toast.success("Parameter added");
+                    keyRef.current.value = "";
+                    valueRef.current.value = "";
+                  }}
+                >
+                  <Add></Add>
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
         )}
         {method === "post" && (
@@ -191,8 +249,6 @@ const Home = () => {
             }
 
             if (method === "get") {
-              console.log("sending get request");
-
               axios
                 .get(url)
                 .then((res) => {
@@ -202,8 +258,6 @@ const Home = () => {
                   setResponse(err.message);
                 });
             } else {
-              console.log("sending post request");
-
               axios
                 .post(url, {
                   title: "foo",
@@ -267,7 +321,8 @@ const Home = () => {
             multiline
             sx={{
               "& .MuiInputBase-input.Mui-disabled": {
-                WebkitTextFillColor: "white",
+                WebkitTextFillColor:
+                  response === "Invalid URL" ? "#fc4747" : "#ffffff",
               },
             }}
           />
