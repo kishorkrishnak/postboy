@@ -1,7 +1,7 @@
 import Navbar from "../Navbar";
 import axios from "axios";
 import { useState } from "react";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { ContentCopy, Add } from "@mui/icons-material";
 import {
   TextField,
   Box,
@@ -15,10 +15,22 @@ import {
   RadioGroup,
   InputAdornment,
 } from "@mui/material";
+
 const Home = () => {
+  interface Parameter {
+    key: string;
+    value: string;
+  }
   const [response, setResponse] = useState<string>("");
   const [url, setUrl] = useState<string>("");
   const [method, setMethod] = useState<string>("get");
+  const [params, setParams] = useState<Parameter | {}>({});
+  const generateParamStringAndAppend = (
+    url: string,
+    params: Parameter
+  ): string => {
+    return "test";
+  };
 
   const isURL = (url: string) => {
     const pattern: RegExp =
@@ -26,6 +38,7 @@ const Home = () => {
 
     return pattern.test(url);
   };
+
   return (
     <>
       <Navbar></Navbar>
@@ -94,6 +107,10 @@ const Home = () => {
           </Typography>
           <FormControl>
             <RadioGroup
+              onChange={(e) => {
+                setMethod(e.target.value);
+                console.log(e);
+              }}
               aria-labelledby="demo-radio-buttons-group-label"
               defaultValue="get"
               name="radio-buttons-group"
@@ -104,55 +121,77 @@ const Home = () => {
           </FormControl>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "flex-start",
+        {url && isURL(url) && method === "get" && (
+          <Box
+            sx={{
+              mt: 4,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle1">Enter Query Params:</Typography>
+            <TextField
+              onChange={(e) => {
+                setUrl(e.target.value);
+              }}
+              sx={{
+                width: "40%",
+              }}
+              size="small"
+              id="request-url"
+              fullWidth
+              label="Param"
+              variant="outlined"
+            />
+            <TextField
+              onChange={(e) => {
+                setUrl(e.target.value);
+              }}
+              sx={{
+                width: "40%",
+              }}
+              size="small"
+              id="request-url"
+              fullWidth
+              label="Value"
+              variant="outlined"
+            />
+            <Tooltip title="Copy">
+              <IconButton edge="end">
+                <Add></Add>
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
+        {method === "post" && (
+          <>
+            <Box
+              sx={{
+                mt: 4,
 
-            gap: 19,
-          }}
-        >
-          <Typography mt={0.5} variant="subtitle1">
-            Content Type:
-          </Typography>
-          <FormControl>
-            <RadioGroup
-              aria-labelledby="demo-radio-buttons-group-label"
-              defaultValue="female"
-              name="radio-buttons-group"
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "flex-start",
+              }}
             >
-              <FormControlLabel value="json" control={<Radio />} label="JSON" />
-              <FormControlLabel
-                value="custom"
-                control={<Radio />}
-                label="Custom Value"
-              />
-            </RadioGroup>
-          </FormControl>
-        </Box>
+              <Typography variant="subtitle1">Enter JSON Data:</Typography>
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "flex-start",
-          }}
-        >
-          <Typography variant="subtitle1">Enter JSON Data:</Typography>
+              <TextField fullWidth multiline rows={3} />
+            </Box>
+          </>
+        )}
 
-          <TextField fullWidth multiline rows={3} />
+        <Button
+          onClick={() => {
+            if (!isURL(url)) {
+              setResponse("Invalid URL");
+              return;
+            }
 
-          <Button
-            onClick={() => {
-              console.log(isURL(url));
-
-              if (!isURL(url)) {
-                setResponse("Invalid URL");
-
-                return;
-              }
+            if (method === "get") {
+              console.log("sending get request");
 
               axios
                 .get(url)
@@ -162,25 +201,41 @@ const Home = () => {
                 .catch((err) => {
                   setResponse(err.message);
                 });
-            }}
-            sx={{
-              mt: 1,
-              backgroundColor: "#37474F",
-              color: "white",
-            }}
-            variant="contained"
-          >
-            Submit
-          </Button>
-        </Box>
+            } else {
+              console.log("sending post request");
 
+              axios
+                .post(url, {
+                  title: "foo",
+                  body: "bar",
+                  userId: 1,
+                })
+                .then((res) => {
+                  setResponse(JSON.stringify(res, null, 2));
+                })
+                .catch((err) => {
+                  setResponse(err.message);
+                });
+            }
+          }}
+          sx={{
+            mt: 1,
+            backgroundColor: "#37474F",
+            color: "white",
+            alignSelf: "flex-start",
+          }}
+          variant="contained"
+        >
+          Submit
+        </Button>
         <Box
           sx={{
             mt: 5,
             display: "flex",
             justifyContent: "flex-start",
             alignItems: "flex-start",
-            gap: 22.5,
+            flexDirection: { xs: "column", md: "row" },
+            gap: { xs: 1, md: 22.5 },
           }}
         >
           <Typography variant="subtitle1">Response:</Typography>
@@ -200,7 +255,7 @@ const Home = () => {
                 >
                   <Tooltip title="Copy">
                     <IconButton edge="end">
-                      <ContentCopyIcon></ContentCopyIcon>
+                      <ContentCopy></ContentCopy>
                     </IconButton>
                   </Tooltip>
                 </InputAdornment>

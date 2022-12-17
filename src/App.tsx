@@ -1,7 +1,7 @@
 import "./App.css";
 import About from "./components/pages/About";
 import Home from "./components/pages/Home";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 const darkTheme = createTheme({
@@ -13,7 +13,7 @@ const darkTheme = createTheme({
     allVariants: {
       color: "white",
     },
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "Arial,Helvetica,sans-serif",
   },
 });
 
@@ -21,13 +21,10 @@ const App = () => {
   return (
     <ThemeProvider theme={darkTheme}>
       <BrowserRouter>
-        <>
-          <Routes>
-            <Route path="/" element={<Home />} />
-
-            <Route path="/about" element={<About />} />
-          </Routes>
-        </>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+        </Routes>
       </BrowserRouter>
     </ThemeProvider>
   );
