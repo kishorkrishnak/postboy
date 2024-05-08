@@ -1,9 +1,9 @@
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { Toaster } from "react-hot-toast";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import About from "./pages/About";
 import Home from "./pages/Home";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { Toaster } from "react-hot-toast";
 const darkTheme = createTheme({
   palette: {
     mode: "dark",

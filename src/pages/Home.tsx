@@ -1,21 +1,21 @@
-import Navbar from "../components/Navbar";
+import { Add, ContentCopy } from "@mui/icons-material";
 import axios from "axios";
-import { useRef, useState, useEffect } from "react";
-import { ContentCopy, Add } from "@mui/icons-material";
+import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+import Navbar from "../components/Navbar";
 
 import {
-  TextField,
   Box,
-  Typography,
-  FormControl,
-  IconButton,
   Button,
+  FormControl,
   FormControlLabel,
-  Radio,
-  Tooltip,
-  RadioGroup,
+  IconButton,
   InputAdornment,
+  Radio,
+  RadioGroup,
+  TextField,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 
 const Home = () => {
@@ -147,6 +147,7 @@ const Home = () => {
           </Typography>
           <FormControl>
             <RadioGroup
+            row
               onChange={(e) => {
                 setMethod(e.target.value);
               }}
@@ -156,6 +157,10 @@ const Home = () => {
             >
               <FormControlLabel value="get" control={<Radio />} label="GET" />
               <FormControlLabel value="post" control={<Radio />} label="POST" />
+              <FormControlLabel value="put" control={<Radio />} label="PUT" />
+              <FormControlLabel value="patch" control={<Radio />} label="PATCH" />
+              <FormControlLabel value="delete" control={<Radio />} label="DELETE" />
+           
             </RadioGroup>
           </FormControl>
         </Box>
