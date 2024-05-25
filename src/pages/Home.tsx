@@ -1,4 +1,4 @@
-import { Add, ContentCopy } from "@mui/icons-material";
+import { Add, ContentCopy, DeleteForever } from "@mui/icons-material";
 import axios from "axios";
 import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -26,9 +26,60 @@ const Home = () => {
   const [response, setResponse] = useState<string>("");
 
   const [url, setUrl] = useState<string>("");
+  const [jsonInput, setJsonInput] = useState<string>("");
+  const [processedJsonInput, setProcessedJsonInput] = useState<string>("{}");
   const [method, setMethod] = useState<string>("get");
-  const keyRef = useRef<HTMLInputElement>(null);
-  const valueRef = useRef<HTMLInputElement>(null);
+  const paramKeyRef = useRef<HTMLInputElement>(null);
+  const paramValueRef = useRef<HTMLInputElement>(null);
+  const jsonKeyRef = useRef<HTMLInputElement>(null);
+  const jsonValueRef = useRef<HTMLInputElement>(null);
+  function removeJsonParameter(key: string) {
+    if (processedJsonInput === "") return;
+
+    let jsonObject: { [key: string]: string } = {};
+    try {
+      jsonObject = JSON.parse(processedJsonInput);
+    } catch (error) {
+      console.error("Error parsing existing JSON:", error);
+      toast.error("Error parsing existing JSON");
+      return;
+    }
+
+    delete jsonObject[key];
+
+    setProcessedJsonInput(JSON.stringify(jsonObject, null, 2));
+    toast.success("Parameter removed");
+  }
+
+  function addJsonParameters(url: string, param: Parameter) {
+    if (!jsonKeyRef.current || !jsonValueRef.current) {
+      toast.error("Both key and value are required");
+      return;
+    }
+
+    const key = jsonKeyRef.current.value;
+    const value = jsonValueRef.current.value;
+
+    let jsonObject: { [key: string]: string } = {};
+    if (jsonInput === "") {
+      jsonObject = JSON.parse(processedJsonInput);
+    } else {
+      try {
+        jsonObject = JSON.parse(processedJsonInput);
+      } catch (error) {
+        return;
+      }
+    }
+
+    jsonObject[key] = value;
+
+    setProcessedJsonInput(JSON.stringify(jsonObject, null, 2));
+
+    jsonKeyRef.current.value = "";
+    jsonValueRef.current.value = "";
+
+    toast.success("Parameter added");
+  }
 
   function addUrlParameters(url: string, param: Parameter) {
     let newUrl = url;
@@ -130,6 +181,49 @@ const Home = () => {
             variant="outlined"
             value={url}
           />
+
+          <Button
+            onClick={() => {
+              if (!isURL(url)) {
+                setResponse("Invalid URL");
+                return;
+              }
+
+              if (method === "get" || method === "delete") {
+                axios({
+                  method: method,
+                  url: url,
+                })
+                  .then((res) => {
+                    setResponse(JSON.stringify(res, null, 2));
+                  })
+                  .catch((err) => {
+                    setResponse(err.message);
+                  });
+              } else {
+                axios({
+                  method: method,
+                  url: url,
+                  data: JSON.parse(processedJsonInput),
+                })
+                  .then((res) => {
+                    setResponse(JSON.stringify(res, null, 2));
+                  })
+                  .catch((err) => {
+                    setResponse(err.message);
+                  });
+              }
+            }}
+            sx={{
+              mt: 1,
+              backgroundColor: "#37474F",
+              color: "white",
+              alignSelf: "flex-start",
+            }}
+            variant="contained"
+          >
+            Submit
+          </Button>
         </Box>
         <Box
           sx={{
@@ -147,7 +241,7 @@ const Home = () => {
           </Typography>
           <FormControl>
             <RadioGroup
-            row
+              row
               onChange={(e) => {
                 setMethod(e.target.value);
               }}
@@ -158,14 +252,21 @@ const Home = () => {
               <FormControlLabel value="get" control={<Radio />} label="GET" />
               <FormControlLabel value="post" control={<Radio />} label="POST" />
               <FormControlLabel value="put" control={<Radio />} label="PUT" />
-              <FormControlLabel value="patch" control={<Radio />} label="PATCH" />
-              <FormControlLabel value="delete" control={<Radio />} label="DELETE" />
-           
+              <FormControlLabel
+                value="patch"
+                control={<Radio />}
+                label="PATCH"
+              />
+              <FormControlLabel
+                value="delete"
+                control={<Radio />}
+                label="DELETE"
+              />
             </RadioGroup>
           </FormControl>
         </Box>
 
-        {url && isURL(url) && method === "get" && (
+        {url && isURL(url) && (
           <Box
             sx={{
               mt: 4,
@@ -176,7 +277,7 @@ const Home = () => {
               gap: { xs: 1, md: 13 },
             }}
           >
-            <Typography variant="subtitle1">Enter Query Params:</Typography>
+            <Typography variant="subtitle1">Add Query Params:</Typography>
 
             <Box
               sx={{
@@ -185,7 +286,7 @@ const Home = () => {
               }}
             >
               <TextField
-                inputRef={keyRef}
+                inputRef={paramKeyRef}
                 size="small"
                 id="request-url"
                 fullWidth
@@ -193,7 +294,7 @@ const Home = () => {
                 variant="outlined"
               />
               <TextField
-                inputRef={valueRef}
+                inputRef={paramValueRef}
                 size="small"
                 id="request-url"
                 fullWidth
@@ -204,21 +305,21 @@ const Home = () => {
                 <IconButton
                   edge="end"
                   onClick={() => {
-                    if (!keyRef.current || !valueRef.current) {
+                    if (!paramKeyRef.current || !paramValueRef.current) {
                       toast.error("Both key and value required");
                       return;
                     }
 
-                    const key: string = keyRef.current.value;
-                    const value: string = valueRef.current.value;
+                    const key: string = paramKeyRef.current.value;
+                    const value: string = paramValueRef.current.value;
 
                     addUrlParameters(url, {
                       key,
                       value,
                     });
                     toast.success("Parameter added");
-                    keyRef.current.value = "";
-                    valueRef.current.value = "";
+                    paramKeyRef.current.value = "";
+                    paramValueRef.current.value = "";
                   }}
                 >
                   <Add></Add>
@@ -227,66 +328,108 @@ const Home = () => {
             </Box>
           </Box>
         )}
-        {method === "post" && (
+        {method!== "get" && method!=="delete" && (
           <>
             <Box
               sx={{
                 mt: 4,
-
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "flex-start",
               }}
             >
-              <Typography variant="subtitle1">Enter JSON Data:</Typography>
+              <Box
+                sx={{
+                  mt: 4,
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  flexDirection: { xs: "column", md: "row" },
+                  alignItems: { xs: "flex-start", md: "center" },
+                  gap: { xs: 1, md: 13 },
+                }}
+              >
+                <Typography variant="subtitle1">Enter JSON Data:</Typography>
 
-              <TextField fullWidth multiline rows={3} />
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                  }}
+                >
+                  <TextField
+                    inputRef={jsonKeyRef}
+                    size="small"
+                    id="request-url"
+                    fullWidth
+                    label="Key"
+                    variant="outlined"
+                  />
+                  <TextField
+                    inputRef={jsonValueRef}
+                    size="small"
+                    id="request-url"
+                    fullWidth
+                    label="Value"
+                    variant="outlined"
+                  />
+                  <Tooltip title="Add">
+                    <IconButton
+                      edge="end"
+                      onClick={() => {
+                        if (!jsonKeyRef.current || !jsonValueRef.current) {
+                          toast.error("Both key and value required");
+                          return;
+                        }
+
+                        const key: string = jsonKeyRef.current.value;
+                        const value: string = jsonValueRef.current.value;
+
+                        addJsonParameters(url, {
+                          key,
+                          value,
+                        });
+                        toast.success("Parameter added");
+                        jsonKeyRef.current.value = "";
+                        jsonValueRef.current.value = "";
+                      }}
+                    >
+                      <Add></Add>
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+              {Object.entries(JSON.parse(processedJsonInput)).map(
+                ([key, value]) => (
+                  <div key={key}>
+                    <Typography>
+                      {`${key}: ${value}`}
+                      <IconButton
+                        onClick={() => removeJsonParameter(key)}
+                        aria-label="delete"
+                      >
+                        <DeleteForever />
+                      </IconButton>
+                    </Typography>
+                  </div>
+                )
+              )}
+              <TextField
+                onChange={(e) => {
+                  setJsonInput(e.target.value);
+                }}
+                value={processedJsonInput}
+                fullWidth
+                multiline
+                rows={3}
+                sx={{
+                  mt: 4,
+                }}
+              />
             </Box>
           </>
         )}
 
-        <Button
-          onClick={() => {
-            if (!isURL(url)) {
-              setResponse("Invalid URL");
-              return;
-            }
-
-            if (method === "get") {
-              axios
-                .get(url)
-                .then((res) => {
-                  setResponse(JSON.stringify(res, null, 2));
-                })
-                .catch((err) => {
-                  setResponse(err.message);
-                });
-            } else {
-              axios
-                .post(url, {
-                  title: "foo",
-                  body: "bar",
-                  userId: 1,
-                })
-                .then((res) => {
-                  setResponse(JSON.stringify(res, null, 2));
-                })
-                .catch((err) => {
-                  setResponse(err.message);
-                });
-            }
-          }}
-          sx={{
-            mt: 1,
-            backgroundColor: "#37474F",
-            color: "white",
-            alignSelf: "flex-start",
-          }}
-          variant="contained"
-        >
-          Submit
-        </Button>
         <Box
           sx={{
             mt: 5,
