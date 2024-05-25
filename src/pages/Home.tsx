@@ -1,4 +1,10 @@
-import { Add, ContentCopy, DeleteForever } from "@mui/icons-material";
+import {
+  Add,
+  ClearAll,
+  ClearRounded,
+  CloseSharp,
+  ContentCopy,
+} from "@mui/icons-material";
 import axios from "axios";
 import { useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -24,64 +30,18 @@ const Home = () => {
     value: string;
   };
   const [response, setResponse] = useState<string>("");
-
   const [url, setUrl] = useState<string>("");
-  const [jsonInput, setJsonInput] = useState<string>("");
-  const [processedJsonInput, setProcessedJsonInput] = useState<string>("{}");
+  const [jsonInput, setJsonInput] = useState<string>("{\n\n}");
   const [method, setMethod] = useState<string>("get");
   const paramKeyRef = useRef<HTMLInputElement>(null);
   const paramValueRef = useRef<HTMLInputElement>(null);
-  const jsonKeyRef = useRef<HTMLInputElement>(null);
-  const jsonValueRef = useRef<HTMLInputElement>(null);
-  function removeJsonParameter(key: string) {
-    if (processedJsonInput === "") return;
 
-    let jsonObject: { [key: string]: string } = {};
-    try {
-      jsonObject = JSON.parse(processedJsonInput);
-    } catch (error) {
-      console.error("Error parsing existing JSON:", error);
-      toast.error("Error parsing existing JSON");
-      return;
-    }
-
-    delete jsonObject[key];
-
-    setProcessedJsonInput(JSON.stringify(jsonObject, null, 2));
-    toast.success("Parameter removed");
-  }
-
-  function addJsonParameters(url: string, param: Parameter) {
-    if (!jsonKeyRef.current || !jsonValueRef.current) {
+  function addUrlParameters(url: string, param: Parameter) {
+    if (!param.key || !param.value) {
       toast.error("Both key and value are required");
       return;
     }
 
-    const key = jsonKeyRef.current.value;
-    const value = jsonValueRef.current.value;
-
-    let jsonObject: { [key: string]: string } = {};
-    if (jsonInput === "") {
-      jsonObject = JSON.parse(processedJsonInput);
-    } else {
-      try {
-        jsonObject = JSON.parse(processedJsonInput);
-      } catch (error) {
-        return;
-      }
-    }
-
-    jsonObject[key] = value;
-
-    setProcessedJsonInput(JSON.stringify(jsonObject, null, 2));
-
-    jsonKeyRef.current.value = "";
-    jsonValueRef.current.value = "";
-
-    toast.success("Parameter added");
-  }
-
-  function addUrlParameters(url: string, param: Parameter) {
     let newUrl = url;
 
     if (newUrl[newUrl.length - 1] === "/") {
@@ -117,7 +77,7 @@ const Home = () => {
         }
       }
     }
-
+    toast.success("Parameter added");
     setUrl(newUrl);
   }
 
@@ -134,7 +94,7 @@ const Home = () => {
       <Box
         sx={{
           px: { xs: 2, md: 10 },
-          pt: 5,
+          py: 5,
           display: "flex",
           flexDirection: "column",
         }}
@@ -185,7 +145,7 @@ const Home = () => {
           <Button
             onClick={() => {
               if (!isURL(url)) {
-                setResponse("Invalid URL");
+                toast.error("Invalid URL");
                 return;
               }
 
@@ -198,19 +158,27 @@ const Home = () => {
                     setResponse(JSON.stringify(res, null, 2));
                   })
                   .catch((err) => {
-                    setResponse(err.message);
+                    setResponse(JSON.stringify(err, null, 2));
                   });
               } else {
+                let parsedData;
+                try {
+                  parsedData = JSON.parse(jsonInput);
+                } catch (err) {
+                  toast.error("Invalid JSON syntax");
+                  return;
+                }
+
                 axios({
                   method: method,
                   url: url,
-                  data: JSON.parse(processedJsonInput),
+                  data: parsedData,
                 })
                   .then((res) => {
                     setResponse(JSON.stringify(res, null, 2));
                   })
                   .catch((err) => {
-                    setResponse(err.message);
+                    setResponse(JSON.stringify(err, null, 2));
                   });
               }
             }}
@@ -317,7 +285,7 @@ const Home = () => {
                       key,
                       value,
                     });
-                    toast.success("Parameter added");
+
                     paramKeyRef.current.value = "";
                     paramValueRef.current.value = "";
                   }}
@@ -328,7 +296,7 @@ const Home = () => {
             </Box>
           </Box>
         )}
-        {method!== "get" && method!=="delete" && (
+        {method !== "get" && method !== "delete" && (
           <>
             <Box
               sx={{
@@ -350,75 +318,13 @@ const Home = () => {
                 }}
               >
                 <Typography variant="subtitle1">Enter JSON Data:</Typography>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 1,
-                  }}
-                >
-                  <TextField
-                    inputRef={jsonKeyRef}
-                    size="small"
-                    id="request-url"
-                    fullWidth
-                    label="Key"
-                    variant="outlined"
-                  />
-                  <TextField
-                    inputRef={jsonValueRef}
-                    size="small"
-                    id="request-url"
-                    fullWidth
-                    label="Value"
-                    variant="outlined"
-                  />
-                  <Tooltip title="Add">
-                    <IconButton
-                      edge="end"
-                      onClick={() => {
-                        if (!jsonKeyRef.current || !jsonValueRef.current) {
-                          toast.error("Both key and value required");
-                          return;
-                        }
-
-                        const key: string = jsonKeyRef.current.value;
-                        const value: string = jsonValueRef.current.value;
-
-                        addJsonParameters(url, {
-                          key,
-                          value,
-                        });
-                        toast.success("Parameter added");
-                        jsonKeyRef.current.value = "";
-                        jsonValueRef.current.value = "";
-                      }}
-                    >
-                      <Add></Add>
-                    </IconButton>
-                  </Tooltip>
-                </Box>
               </Box>
-              {Object.entries(JSON.parse(processedJsonInput)).map(
-                ([key, value]) => (
-                  <div key={key}>
-                    <Typography>
-                      {`${key}: ${value}`}
-                      <IconButton
-                        onClick={() => removeJsonParameter(key)}
-                        aria-label="delete"
-                      >
-                        <DeleteForever />
-                      </IconButton>
-                    </Typography>
-                  </div>
-                )
-              )}
+
               <TextField
                 onChange={(e) => {
                   setJsonInput(e.target.value);
                 }}
-                value={processedJsonInput}
+                value={jsonInput}
                 fullWidth
                 multiline
                 rows={3}
@@ -444,23 +350,45 @@ const Home = () => {
           <TextField
             InputProps={{
               endAdornment: response ? (
-                <InputAdornment
-                  onClick={() => {
-                    navigator.clipboard.writeText(response);
-                  }}
-                  sx={{
-                    position: "absolute",
-                    top: 27,
-                    right: 15,
-                  }}
-                  position="end"
-                >
-                  <Tooltip title="Copy">
-                    <IconButton edge="end">
-                      <ContentCopy></ContentCopy>
-                    </IconButton>
-                  </Tooltip>
-                </InputAdornment>
+                <Box>
+                 
+                  <InputAdornment
+                    onClick={() => {
+                      navigator.clipboard.writeText(response);
+                    }}
+                    sx={{
+                      position: "absolute",
+                      top: 27,
+                      right: 50,
+                    }}
+                    position="end"
+                  >
+                    <Tooltip title="Copy">
+                      <IconButton edge="end">
+                        <ContentCopy></ContentCopy>
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+
+
+                  <InputAdornment
+                    onClick={() => {
+                      setResponse("");
+                    }}
+                    sx={{
+                      position: "absolute",
+                      top: 27,
+                      right: 15,
+                    }}
+                    position="end"
+                  >
+                    <Tooltip title="Clear">
+                      <IconButton edge="end">
+                        <ClearRounded></ClearRounded>
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+                </Box>
               ) : null,
             }}
             disabled
